@@ -1,4 +1,5 @@
 /* Copyright 2014, Kenneth MacKay. Licensed under the BSD 2-clause license. */
+/* Copyright 2023, Atmosic */
 
 #include "uECC.h"
 #include "uECC_vli.h"
@@ -186,7 +187,7 @@ static cmpresult_t uECC_vli_cmp_unsafe(const uECC_word_t *left,
     #include "asm_avr.inc"
 #endif
 
-#if default_RNG_defined
+#if defined(default_RNG_defined) && default_RNG_defined
 static uECC_RNG_Function g_rng_function = &default_RNG;
 #else
 static uECC_RNG_Function g_rng_function = 0;
@@ -208,14 +209,14 @@ int uECC_curve_public_key_size(uECC_Curve curve) {
     return 2 * curve->num_bytes;
 }
 
-#if !asm_clear
+#if !(defined(asm_clear)  && asm_clear)
 uECC_VLI_API void uECC_vli_clear(uECC_word_t *vli, wordcount_t num_words) {
     wordcount_t i;
     for (i = 0; i < num_words; ++i) {
         vli[i] = 0;
     }
 }
-#endif /* !asm_clear */
+#endif /* !(defined(asm_clear)  && asm_clear) */
 
 /* Constant-time comparison to zero - secure way to compare long integers */
 /* Returns 1 if vli == 0, 0 otherwise. */
@@ -263,14 +264,14 @@ uECC_VLI_API bitcount_t uECC_vli_numBits(const uECC_word_t *vli, const wordcount
 }
 
 /* Sets dest = src. */
-#if !asm_set
+#if !(defined(asm_set)  && asm_set)
 uECC_VLI_API void uECC_vli_set(uECC_word_t *dest, const uECC_word_t *src, wordcount_t num_words) {
     wordcount_t i;
     for (i = 0; i < num_words; ++i) {
         dest[i] = src[i];
     }
 }
-#endif /* !asm_set */
+#endif /* !(defined(asm_set)  && asm_set) */
 
 /* Returns sign of left - right. */
 static cmpresult_t uECC_vli_cmp_unsafe(const uECC_word_t *left,
@@ -316,7 +317,7 @@ uECC_VLI_API cmpresult_t uECC_vli_cmp(const uECC_word_t *left,
 }
 
 /* Computes vli = vli >> 1. */
-#if !asm_rshift1
+#if !(defined(asm_rshift1)  && asm_rshift1)
 uECC_VLI_API void uECC_vli_rshift1(uECC_word_t *vli, wordcount_t num_words) {
     uECC_word_t *end = vli;
     uECC_word_t carry = 0;
@@ -328,7 +329,7 @@ uECC_VLI_API void uECC_vli_rshift1(uECC_word_t *vli, wordcount_t num_words) {
         carry = temp << (uECC_WORD_BITS - 1);
     }
 }
-#endif /* !asm_rshift1 */
+#endif /* !(defined(asm_rshift1)  && asm_rshift1) */
 
 /* Computes result = left + right, returning carry. Can modify in place. */
 #if !asm_add
@@ -564,6 +565,7 @@ uECC_VLI_API void uECC_vli_modSub(uECC_word_t *result,
     }
 }
 
+#ifndef uECC_ECDSA_DISABLE
 /* Computes result = product % mod, where product is 2N words long. */
 /* Currently only designed to work for curve_p or curve_n. */
 uECC_VLI_API void uECC_vli_mmod(uECC_word_t *result,
@@ -618,6 +620,7 @@ uECC_VLI_API void uECC_vli_modMult(uECC_word_t *result,
     uECC_vli_mult(product, left, right, num_words);
     uECC_vli_mmod(result, product, mod, num_words);
 }
+#endif
 
 uECC_VLI_API void uECC_vli_modMult_fast(uECC_word_t *result,
                                         const uECC_word_t *left,
@@ -944,7 +947,7 @@ uECC_VLI_API int uECC_generate_random_int(uECC_word_t *random,
 }
 
 static uECC_word_t EccPoint_compute_public_key(uECC_word_t *result,
-                                               uECC_word_t *private_key,
+                                               uECC_word_t const *private_key,
                                                uECC_Curve curve) {
     uECC_word_t tmp1[uECC_MAX_WORDS];
     uECC_word_t tmp2[uECC_MAX_WORDS];
@@ -972,6 +975,7 @@ static uECC_word_t EccPoint_compute_public_key(uECC_word_t *result,
     return 1;
 }
 
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN == 0
 #if uECC_WORD_SIZE == 1
 
 uECC_VLI_API void uECC_vli_nativeToBytes(uint8_t *bytes,
@@ -1014,6 +1018,7 @@ uECC_VLI_API void uECC_vli_bytesToNative(uECC_word_t *native,
 }
 
 #endif /* uECC_WORD_SIZE */
+#endif /* uECC_VLI_NATIVE_LITTLE_ENDIAN */
 
 int uECC_make_key(uint8_t *public_key,
                   uint8_t *private_key,
@@ -1154,7 +1159,7 @@ uECC_VLI_API int uECC_valid_point(const uECC_word_t *point, uECC_Curve curve) {
 
 int uECC_valid_public_key(const uint8_t *public_key, uECC_Curve curve) {
 #if uECC_VLI_NATIVE_LITTLE_ENDIAN
-    uECC_word_t *_public = (uECC_word_t *)public_key;
+    uECC_word_t const *_public = (uECC_word_t const *)public_key;
 #else
     uECC_word_t _public[uECC_MAX_WORDS * 2];
 #endif
@@ -1169,7 +1174,7 @@ int uECC_valid_public_key(const uint8_t *public_key, uECC_Curve curve) {
 
 int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uECC_Curve curve) {
 #if uECC_VLI_NATIVE_LITTLE_ENDIAN
-    uECC_word_t *_private = (uECC_word_t *)private_key;
+    uECC_word_t const *_private = (uECC_word_t const *)private_key;
     uECC_word_t *_public = (uECC_word_t *)public_key;
 #else
     uECC_word_t _private[uECC_MAX_WORDS];
@@ -1202,6 +1207,7 @@ int uECC_compute_public_key(const uint8_t *private_key, uint8_t *public_key, uEC
     return 1;
 }
 
+#ifndef uECC_ECDSA_DISABLE
 
 /* -------- ECDSA code -------- */
 
@@ -1327,6 +1333,13 @@ static int uECC_sign_with_k_internal(const uint8_t *private_key,
 }
 
 /* For testing - sign with an explicitly specified k value */
+int uECC_sign_with_k(const uint8_t *private_key,
+                            const uint8_t *message_hash,
+                            unsigned hash_size,
+                            const uint8_t *k,
+                            uint8_t *signature,
+                            uECC_Curve curve);
+
 int uECC_sign_with_k(const uint8_t *private_key,
                             const uint8_t *message_hash,
                             unsigned hash_size,
@@ -1597,6 +1610,7 @@ int uECC_verify(const uint8_t *public_key,
     /* Accept only if v == r. */
     return (int)(uECC_vli_equal(rx, r, num_words));
 }
+#endif // uECC_ECDSA_DISABLE
 
 #if uECC_ENABLE_VLI_API
 

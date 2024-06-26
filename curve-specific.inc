@@ -168,7 +168,7 @@ static const struct uECC_Curve_t curve_secp160r1 = {
 
 uECC_Curve uECC_secp160r1(void) { return &curve_secp160r1; }
 
-#if (uECC_OPTIMIZATION_LEVEL > 0 && !asm_mmod_fast_secp160r1)
+#if (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp160r1) && asm_mmod_fast_secp160r1))
 /* Computes result = product % curve_p
     see http://www.isys.uni-klu.ac.at/PDF/2001-0126-MT.pdf page 354
     
@@ -271,7 +271,7 @@ static void omega_mult_secp160r1(uint32_t *result, const uint32_t *right) {
     }
 }
 #endif /* uECC_WORD_SIZE */
-#endif /* (uECC_OPTIMIZATION_LEVEL > 0 && !asm_mmod_fast_secp160r1) */
+#endif /* (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp160r1)  && asm_mmod_fast_secp160r1)) */
 
 #endif /* uECC_SUPPORTS_secp160r1 */
 
@@ -771,7 +771,7 @@ static const struct uECC_Curve_t curve_secp256r1 = {
 uECC_Curve uECC_secp256r1(void) { return &curve_secp256r1; }
 
 
-#if (uECC_OPTIMIZATION_LEVEL > 0 && !asm_mmod_fast_secp256r1)
+#if (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp256r1) && asm_mmod_fast_secp256r1))
 /* Computes result = product % curve_p
    from http://www.nsa.gov/ia/_files/nist-routines.pdf */
 #if uECC_WORD_SIZE == 1
@@ -1053,7 +1053,7 @@ static void vli_mmod_fast_secp256r1(uint64_t *result, uint64_t *product) {
     }
 }
 #endif /* uECC_WORD_SIZE */
-#endif /* (uECC_OPTIMIZATION_LEVEL > 0 && !asm_mmod_fast_secp256r1) */
+#endif /* (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp256r1) && asm_mmod_fast_secp256r1)) */
 
 #endif /* uECC_SUPPORTS_secp256r1 */
 
@@ -1152,7 +1152,7 @@ static void x_side_secp256k1(uECC_word_t *result, const uECC_word_t *x, uECC_Cur
     uECC_vli_modAdd(result, result, curve->b, curve->p, num_words_secp256k1); /* r = x^3 + b */
 }
 
-#if (uECC_OPTIMIZATION_LEVEL > 0 && !asm_mmod_fast_secp256k1)
+#if (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp256k1) && asm_mmod_fast_secp256k1))
 static void omega_mult_secp256k1(uECC_word_t *result, const uECC_word_t *right);
 static void vli_mmod_fast_secp256k1(uECC_word_t *result, uECC_word_t *product) {
     uECC_word_t tmp[2 * num_words_secp256k1];
@@ -1241,7 +1241,7 @@ static void omega_mult_secp256k1(uint64_t * result, const uint64_t * right) {
     result[num_words_secp256k1] = r0;
 }
 #endif /* uECC_WORD_SIZE */
-#endif /* (uECC_OPTIMIZATION_LEVEL > 0 &&  && !asm_mmod_fast_secp256k1) */
+#endif /* (uECC_OPTIMIZATION_LEVEL > 0 && !(defined(asm_mmod_fast_secp256k1) && asm_mmod_fast_secp256k1)) */
 
 #endif /* uECC_SUPPORTS_secp256k1 */
 
