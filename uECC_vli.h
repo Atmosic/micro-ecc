@@ -1,4 +1,5 @@
 /* Copyright 2015, Kenneth MacKay. Licensed under the BSD 2-clause license. */
+/* Copyright 2024, Atmosic */
 
 #ifndef _UECC_VLI_H_
 #define _UECC_VLI_H_
@@ -156,6 +157,19 @@ void uECC_point_mult(uECC_word_t *result,
                      const uECC_word_t *point,
                      const uECC_word_t *scalar,
                      uECC_Curve curve);
+
+#ifdef uECC_SUPPORT_POINT_ADD
+/*
+   Adds a point P to another point Q. Points are represented by the X coordinate
+   followed by the Y coordinate in the same 'byte array', both coordinates are
+   curve->num_bytes long.
+*/
+int uECC_point_add(
+    uint8_t *result,
+    uint8_t const *P,
+    uint8_t const *Q,
+    uECC_Curve curve);
+#endif
 
 /* Generates a random integer in the range 0 < random < top.
    Both random and top have num_words words. */

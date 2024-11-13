@@ -1,5 +1,5 @@
 /* Copyright 2014, Kenneth MacKay. Licensed under the BSD 2-clause license. */
-/* Copyright 2023, Atmosic */
+/* Copyright 2023-2024, Atmosic */
 
 #include "uECC.h"
 #include "uECC_vli.h"
@@ -1679,5 +1679,74 @@ void uECC_point_mult(uECC_word_t *result,
 
     EccPoint_mult(result, point, p2[!carry], 0, curve->num_n_bits + 1, curve);
 }
+
+#ifdef uECC_SUPPORT_POINT_ADD
+// this is a revised subset of the uECC_verify function (sum = G + Q)
+int uECC_point_add(
+    uint8_t *result,
+    uint8_t const *P,
+    uint8_t const *Q,
+    uECC_Curve curve)
+{
+    uint8_t const num_bytes = curve->num_bytes;
+    uint8_t const num_words = curve->num_words;
+
+    // _P _Q _R for storing native format points
+    uECC_word_t _P[2][num_words];
+    uECC_word_t _Q[2][num_words];
+    uECC_word_t _R[2][num_words];
+    // for calculating projective coordinates
+    uECC_word_t tx[num_words];
+    uECC_word_t ty[num_words];
+    uECC_word_t z[num_words];
+
+    // Use native format to check point validity first
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    bcopy((uint8_t *)_P[0], P, num_bytes);
+    bcopy((uint8_t *)_P[1], P + num_bytes, num_bytes);
+    bcopy((uint8_t *)_Q[0], Q, num_bytes);
+    bcopy((uint8_t *)_Q[1], Q + num_bytes, num_bytes);
+#else
+    uECC_vli_bytesToNative(_P[0], P, num_bytes);
+    uECC_vli_bytesToNative(_P[1], P + num_bytes, num_bytes);
+    uECC_vli_bytesToNative(_Q[0], Q, num_bytes);
+    uECC_vli_bytesToNative(_Q[1], Q + num_bytes, num_bytes);
+#endif
+    if (!uECC_valid_point(_P[0], curve)) {
+	return 1;
+    }
+    if (!uECC_valid_point(_Q[0], curve)) {
+	return 2;
+    }
+
+    // Calculate R = P + Q
+    uECC_vli_set(_R[0], _Q[0], num_words);
+    uECC_vli_set(_R[1], _Q[1], num_words);
+    uECC_vli_set(tx, _P[0], num_words);
+    uECC_vli_set(ty, _P[1], num_words);
+    // z = x2 - x1
+    uECC_vli_modSub(z, _R[0], tx, curve->p, num_words);
+    XYcZ_add(tx, ty, _R[0], _R[1], curve);
+    // z = 1/z
+    uECC_vli_modInv(z, z, curve->p, num_words);
+    apply_z(_R[0], _R[1], z, curve);
+
+    // Check if result in native format is on the curve
+    if (!uECC_valid_point(_R[0], curve)) {
+	return 3;
+    }
+
+    // output result _R to uint8_t array
+#if uECC_VLI_NATIVE_LITTLE_ENDIAN
+    bcopy(result, (uint8_t const *)_R[0], num_bytes);
+    bcopy(result + num_bytes, (uint8_t const *)_R[1], num_bytes);
+#else
+    uECC_vli_nativeToBytes(result, num_bytes, _R[0]);
+    uECC_vli_nativeToBytes(result + num_bytes, num_bytes, _R[1]);
+#endif
+
+    return 0;
+}
+#endif
 
 #endif /* uECC_ENABLE_VLI_API */
