@@ -3,6 +3,7 @@
 
 #include "uECC.h"
 #include "uECC_vli.h"
+#include "uECC_internal.h"
 
 #ifndef uECC_RNG_MAX_TRIES
     #define uECC_RNG_MAX_TRIES 64
@@ -753,10 +754,10 @@ From http://eprint.iacr.org/2011/338.pdf
 */
 
 /* Modify (x1, y1) => (x1 * z^2, y1 * z^3) */
-static void apply_z(uECC_word_t * X1,
-                    uECC_word_t * Y1,
-                    const uECC_word_t * const Z,
-                    uECC_Curve curve) {
+void apply_z(uECC_word_t * X1,
+             uECC_word_t * Y1,
+             const uECC_word_t * const Z,
+             uECC_Curve curve) {
     uECC_word_t t1[uECC_MAX_WORDS];
 
     uECC_vli_modSquare_fast(t1, Z, curve);    /* z^2 */
@@ -766,12 +767,12 @@ static void apply_z(uECC_word_t * X1,
 }
 
 /* P = (x1, y1) => 2P, (x2, y2) => P' */
-static void XYcZ_initial_double(uECC_word_t * X1,
-                                uECC_word_t * Y1,
-                                uECC_word_t * X2,
-                                uECC_word_t * Y2,
-                                const uECC_word_t * const initial_Z,
-                                uECC_Curve curve) {
+void XYcZ_initial_double(uECC_word_t * X1,
+                         uECC_word_t * Y1,
+                         uECC_word_t * X2,
+                         uECC_word_t * Y2,
+                         const uECC_word_t * const initial_Z,
+                         uECC_Curve curve) {
     uECC_word_t z[uECC_MAX_WORDS];
     wordcount_t num_words = curve->num_words;
     if (initial_Z) {
@@ -793,11 +794,11 @@ static void XYcZ_initial_double(uECC_word_t * X1,
    Output P' = (x1', y1', Z3), P + Q = (x3, y3, Z3)
    or P => P', Q => P + Q
 */
-static void XYcZ_add(uECC_word_t * X1,
-                     uECC_word_t * Y1,
-                     uECC_word_t * X2,
-                     uECC_word_t * Y2,
-                     uECC_Curve curve) {
+void XYcZ_add(uECC_word_t * X1,
+              uECC_word_t * Y1,
+              uECC_word_t * X2,
+              uECC_word_t * Y2,
+              uECC_Curve curve) {
     /* t1 = X1, t2 = Y1, t3 = X2, t4 = Y2 */
     uECC_word_t t5[uECC_MAX_WORDS];
     wordcount_t num_words = curve->num_words;
@@ -824,11 +825,11 @@ static void XYcZ_add(uECC_word_t * X1,
    Output P + Q = (x3, y3, Z3), P - Q = (x3', y3', Z3)
    or P => P - Q, Q => P + Q
 */
-static void XYcZ_addC(uECC_word_t * X1,
-                      uECC_word_t * Y1,
-                      uECC_word_t * X2,
-                      uECC_word_t * Y2,
-                      uECC_Curve curve) {
+void XYcZ_addC(uECC_word_t * X1,
+               uECC_word_t * Y1,
+               uECC_word_t * X2,
+               uECC_word_t * Y2,
+               uECC_Curve curve) {
     /* t1 = X1, t2 = Y1, t3 = X2, t4 = Y2 */
     uECC_word_t t5[uECC_MAX_WORDS];
     uECC_word_t t6[uECC_MAX_WORDS];
@@ -975,7 +976,6 @@ static uECC_word_t EccPoint_compute_public_key(uECC_word_t *result,
     return 1;
 }
 
-#if uECC_VLI_NATIVE_LITTLE_ENDIAN == 0
 #if uECC_WORD_SIZE == 1
 
 uECC_VLI_API void uECC_vli_nativeToBytes(uint8_t *bytes,
@@ -1018,7 +1018,6 @@ uECC_VLI_API void uECC_vli_bytesToNative(uECC_word_t *native,
 }
 
 #endif /* uECC_WORD_SIZE */
-#endif /* uECC_VLI_NATIVE_LITTLE_ENDIAN */
 
 int uECC_make_key(uint8_t *public_key,
                   uint8_t *private_key,
